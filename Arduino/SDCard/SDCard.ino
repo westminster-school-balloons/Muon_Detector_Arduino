@@ -110,51 +110,51 @@ void setup() {
   start_time = millis();
 }
 
-void loop() {
-  if(Mode == 1){
-  Serial.println(F("##########################################################################################"));
-  Serial.println(F("### CosmicWatch: The Desktop Muon Detector"));
-  Serial.println(F("### Questions? saxani@mit.edu"));
-  Serial.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
-  Serial.println(F("##########################################################################################"));
-  Serial.println("Device ID: " + (String)detector_name);
+            void loop() {
+              if(Mode == 1){
+              Serial.println(F("##########################################################################################"));
+              Serial.println(F("### CosmicWatch: The Desktop Muon Detector"));
+              Serial.println(F("### Questions? saxani@mit.edu"));
+              Serial.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
+              Serial.println(F("##########################################################################################"));
+              Serial.println("Device ID: " + (String)detector_name);
 
-  myFile.println(F("##########################################################################################"));
-  myFile.println(F("### CosmicWatch: The Desktop Muon Detector"));
-  myFile.println(F("### Questions? saxani@mit.edu"));
-  myFile.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
-  myFile.println(F("##########################################################################################"));
-  myFile.println("Device ID: " + (String)detector_name);
-   
-  write_to_SD();
-  }
-}
+              myFile.println(F("##########################################################################################"));
+              myFile.println(F("### CosmicWatch: The Desktop Muon Detector"));
+              myFile.println(F("### Questions? saxani@mit.edu"));
+              myFile.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
+              myFile.println(F("##########################################################################################"));
+              myFile.println("Device ID: " + (String)detector_name);
+              
+              write_to_SD();
+              }
+            }
 
-void setup_files(){   
-  for (uint8_t i = 1; i < 201; i++) {
-      int hundreds = (i-i/1000*1000)/100;
-      int tens = (i-i/100*100)/10;
-      int ones = i%10;
-      filename[5] = hundreds + '0';
-      filename[6] = tens + '0';
-      filename[7] = ones + '0';
-      if (! SD.exists(filename)) {
-          Serial.println("Creating file: " + (String)filename);
-          if (SLAVE ==1){
-           digitalWrite(3,HIGH);
-           delay(1000);
-           digitalWrite(3,LOW);
-          }
-          delay(500);
-          myFile = SD.open(filename, FILE_WRITE); 
-          break;  
-      }
-   }
-}
+            void setup_files(){   
+              for (uint8_t i = 1; i < 201; i++) {
+                  int hundreds = (i-i/1000*1000)/100;
+                  int tens = (i-i/100*100)/10;
+                  int ones = i%10;
+                  filename[5] = hundreds + '0';
+                  filename[6] = tens + '0';
+                  filename[7] = ones + '0';
+                  if (! SD.exists(filename)) {
+                      Serial.println("Creating file: " + (String)filename);
+                      if (SLAVE ==1){
+                      digitalWrite(3,HIGH);
+                      delay(1000);
+                      digitalWrite(3,LOW);
+                      }
+                      delay(500);
+                      myFile = SD.open(filename, FILE_WRITE); 
+                      break;  
+                  }
+              }
+            }
 
 void write_to_SD(){ 
   while (1){
-    if (analogRead(A0) > SIGNAL_THRESHOLD){
+    if (analogRead(A0) > SIGNAL_THRESHOLD){     //if pulse detected
       int adc = analogRead(A0);
       
       if (MASTER == 1) {digitalWrite(6, HIGH);
@@ -201,108 +201,108 @@ void write_to_SD(){
     }
 }
 
-void read_from_SD(){
-    while(true){
-    if(SD.exists("File_210.txt")){
-      SD.remove("File_209.txt");
-      SD.remove("File_208.txt");
-      SD.remove("File_207.txt");
-      SD.remove("File_206.txt");
-      SD.remove("File_205.txt");
-      SD.remove("File_204.txt");
-      SD.remove("File_203.txt");
-      SD.remove("File_202.txt");
-      SD.remove("File_201.txt");
-      SD.remove("File_200.txt");
-      }
-    
-    for (uint8_t i = 1; i < 211; i++) {
-      
-      int hundreds = (i-i/1000*1000)/100;
-      int tens = (i-i/100*100)/10;
-      int ones = i%10;
-      filename[5] = hundreds + '0';
-      filename[6] = tens + '0';
-      filename[7] = ones + '0';
-      filename[4] = 'M';
+            void read_from_SD(){
+                while(true){
+                if(SD.exists("File_210.txt")){
+                  SD.remove("File_209.txt");
+                  SD.remove("File_208.txt");
+                  SD.remove("File_207.txt");
+                  SD.remove("File_206.txt");
+                  SD.remove("File_205.txt");
+                  SD.remove("File_204.txt");
+                  SD.remove("File_203.txt");
+                  SD.remove("File_202.txt");
+                  SD.remove("File_201.txt");
+                  SD.remove("File_200.txt");
+                  }
+                
+                for (uint8_t i = 1; i < 211; i++) {
+                  
+                  int hundreds = (i-i/1000*1000)/100;
+                  int tens = (i-i/100*100)/10;
+                  int ones = i%10;
+                  filename[5] = hundreds + '0';
+                  filename[6] = tens + '0';
+                  filename[7] = ones + '0';
+                  filename[4] = 'M';
 
-      if (SD.exists(filename)) {
-          delay(10);  
-          File dataFile = SD.open(filename);
-          Serial.println("opening: " + (String)filename);
-          while (dataFile.available()) {
-              Serial.write(dataFile.read());
+                  if (SD.exists(filename)) {
+                      delay(10);  
+                      File dataFile = SD.open(filename);
+                      Serial.println("opening: " + (String)filename);
+                      while (dataFile.available()) {
+                          Serial.write(dataFile.read());
+                          }
+                      dataFile.close();
+                      Serial.println("EOF");
+                    }
+                  filename[4] = 'S';
+                  if (SD.exists(filename)) {
+                      delay(10);  
+                      File dataFile = SD.open(filename);
+                      Serial.println("opening: " + (String)filename);
+                      while (dataFile.available()) {
+                          Serial.write(dataFile.read());
+                          }
+                      dataFile.close();
+                      Serial.println("EOF");
+                    }
+                  }  
+                
+                Serial.println("Done...");
+                break;
               }
-          dataFile.close();
-          Serial.println("EOF");
-        }
-      filename[4] = 'S';
-      if (SD.exists(filename)) {
-          delay(10);  
-          File dataFile = SD.open(filename);
-          Serial.println("opening: " + (String)filename);
-          while (dataFile.available()) {
-              Serial.write(dataFile.read());
+              
+            }
+
+            void remove_all_SD() {
+              while(true){
+                for (uint8_t i = 1; i < 211; i++) {
+                  
+                  int hundreds = (i-i/1000*1000)/100;
+                  int tens = (i-i/100*100)/10;
+                  int ones = i%10;
+                  filename[5] = hundreds + '0';
+                  filename[6] = tens + '0';
+                  filename[7] = ones + '0';
+                  filename[4] = 'M';
+                  
+                  if (SD.exists(filename)) {
+                      delay(10);  
+                      Serial.println("Deleting file: " + (String)filename);
+                      SD.remove(filename);   
+                    }
+                  filename[4] = 'S';
+                  if (SD.exists(filename)) {
+                      delay(10);  
+                      Serial.println("Deleting file: " + (String)filename);
+                      SD.remove(filename);   
+                    }   
+                }
+                Serial.println("Done...");
+                break;
               }
-          dataFile.close();
-          Serial.println("EOF");
-        }
-      }  
-    
-    Serial.println("Done...");
-    break;
-  }
-  
+              write_to_SD();
 }
 
-void remove_all_SD() {
-  while(true){
-    for (uint8_t i = 1; i < 211; i++) {
-      
-      int hundreds = (i-i/1000*1000)/100;
-      int tens = (i-i/100*100)/10;
-      int ones = i%10;
-      filename[5] = hundreds + '0';
-      filename[6] = tens + '0';
-      filename[7] = ones + '0';
-      filename[4] = 'M';
-      
-      if (SD.exists(filename)) {
-          delay(10);  
-          Serial.println("Deleting file: " + (String)filename);
-          SD.remove(filename);   
-        }
-      filename[4] = 'S';
-      if (SD.exists(filename)) {
-          delay(10);  
-          Serial.println("Deleting file: " + (String)filename);
-          SD.remove(filename);   
-        }   
-    }
-    Serial.println("Done...");
-    break;
-  }
-  write_to_SD();
-}
-
-void get_Mode(){ //fuction for automatic port finding on PC
-    Serial.println("CosmicWatchDetector");
-    Serial.println(detector_name);
-    String message = "";
-    message = Serial.readString();
-    if(message == "write"){
-      delay(1000);
-      Mode = 1;
-    }
-    else if(message == "read"){
-      delay(1000);
-      Mode =  2;
-    }
-    else if(message == "remove"){
-      delay(1000);
-      Mode = 3;
-    }
-}
+            void get_Mode(){ //fuction for automatic port finding on PC
+                Serial.println("CosmicWatchDetector");
+                Serial.println(detector_name);
+                String message = "";
+                message = Serial.readString();
+                if(message == "write"){
+                  delay(1000);
+                  Mode = 1;
+                }
+                else if(message == "read"){
+                  delay(1000);
+                  Mode =  2;
+                }
+                else if(message == "remove"){
+                  delay(1000);
+                  Mode = 3;
+                }
+            }
 
 float get_sipm_voltage(float adc_value){
   float voltage = 0;
