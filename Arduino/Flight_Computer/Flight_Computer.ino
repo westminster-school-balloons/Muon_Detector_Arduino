@@ -121,9 +121,17 @@ void setup() {
     analogRead(A0); 
 
     start_time = millis();
+
+    if(Mode == 1){
+        myFile.println(F("##########################################################################################"));
+        myFile.println(F("### CosmicWatch: The Desktop Muon Detector"));
+        myFile.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
+        myFile.println(F("##########################################################################################"));
+        myFile.println("Device ID: " + (String)detector_name);
+    }
 }
 
-void write_to_SD(){ 
+void transfer_to_SD_and_Pi(){ 
   while (1){
     if (analogRead(A0) > SIGNAL_THRESHOLD){     //if pulse detected
 
@@ -209,23 +217,16 @@ boolean get_detector_name(char* det_name)
 }
 
 
+void loop() {
+    transfer_to_SD_and_Pi();
+    }
+}
+
+
 
 // Maintain capability to write to SD card
 
 /*
-void loop() {
-    if(Mode == 1){
-    myFile.println(F("##########################################################################################"));
-    myFile.println(F("### CosmicWatch: The Desktop Muon Detector"));
-    myFile.println(F("### Questions? saxani@mit.edu"));
-    myFile.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
-    myFile.println(F("##########################################################################################"));
-    myFile.println("Device ID: " + (String)detector_name);
-    
-    write_to_SD();
-    }
-}
-
 void setup_files(){   
   for (uint8_t i = 1; i < 201; i++) {
       int hundreds = (i-i/1000*1000)/100;
@@ -329,7 +330,7 @@ void remove_all_SD() {
     Serial.println("Done...");
     break;
   }
-  write_to_SD();
+  transfer_to_SD_and_Pi();
 }
 
 
