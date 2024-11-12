@@ -22,7 +22,7 @@
 
 #include <SPI.h>
 
-//SD Card---
+//SD Card----------------------------------------
 #include <SD.h>
 #include <EEPROM.h>
 
@@ -32,8 +32,29 @@ Sd2Card card;
 SdVolume volume;
 
 File myFile;
+//-----------------------------------------------
 
-//------
+//OLED-------------------------------------------
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+#include <TimerOne.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <EEPROM.h>
+
+const byte OLED = 1;                      // Turn on/off the OLED [1,0]
+
+//INTERUPT SETUP
+#define TIMER_INTERVAL 1000000          // Every 1,000,000 us the timer will update the OLED readout
+
+//OLED SETUP
+#define OLED_RESET 10
+Adafruit_SSD1306 display(OLED_RESET);
+
+unsigned long waiting_t1                      = 0L;
+float sipm_voltage                            = 0;
+float last_sipm_voltage                       = 0;
+//------------------------------------------------
 
 const int SIGNAL_THRESHOLD    = 50;          // Min threshold to trigger on
 const int RESET_THRESHOLD     = 25; 
@@ -104,10 +125,20 @@ void setup() {
         //delay(2000);
     }
 
+    //If OLED is active
+    if (OLED == 1){
+        display.setRotation(2);         // Upside down screen (0 is right-side-up)
+        OpeningScreen();                // Run the splash screen on start-up
+        delay(2000);                    // Delay some time to show the logo, and keep the Pin6 HIGH for coincidence
+        display.setTextSize(1);
+    }
+
     if (!SD.begin(SDPIN)) {
-    Serial.println(F("SD initialization failed!"));
+    Serial.println(F("SD initialisation failed"));
     //Serial.println(F("Is there an SD card inserted?"));
-    return;
+    }
+    else{
+        Serial.println(F("SD initialisation succeeded"))
     }
   
 /*      //Queries whether to write to SD Card
@@ -117,9 +148,11 @@ void setup() {
     else{setup_files();}
 */
 
+    digitalWrite(3,LOW);
     if (MASTER == 1){digitalWrite(6,LOW);}
-    analogRead(A0); 
+    analogRead(A0);
 
+    get_time();
     start_time = millis();
 
     if(Mode == 1){
@@ -129,6 +162,9 @@ void setup() {
         myFile.println(F("##########################################################################################"));
         myFile.println("Device ID: " + (String)detector_name);
     }
+
+    Timer1.initialize(TIMER_INTERVAL);             // Initialise timer 1
+    Timer1.attachInterrupt(timerIsr);              // attach the ISR routine
 }
 
 void transfer_to_SD_and_Pi(){ 
@@ -141,7 +177,8 @@ void transfer_to_SD_and_Pi(){
         // If Master, send a signal to the Slave
         if (MASTER == 1) {digitalWrite(6, HIGH);
             count++;
-            keep_pulse = 1;}
+            keep_pulse = 1;
+        }
       
         analogRead(A3);
       
@@ -154,18 +191,32 @@ void transfer_to_SD_and_Pi(){
 
         // If Master, stop signalling the Slave
         if (MASTER == 1){
-                digitalWrite(6, LOW);}
+                digitalWrite(6, LOW);
+        }
 
+        // Measure deadtime
         measurement_deadtime = total_deadtime;
         time_stamp = millis() - start_time;
-        measurement_t1 = micros();  
+
+        // Measure the temperature, voltage reference is currently set to 3.3V
         temperatureC = (((analogRead(A3)+analogRead(A3)+analogRead(A3))/3. * (3300./1024)) - 500)/10. ;
+
+        if((interrupt_timer + 1000 - millis()) < 15){ 
+            waiting_t1 = millis();
+            waiting_for_interupt = 1;
+            delay(30);
+            waiting_for_interupt = 0;
+        }
+
+        measurement_t1 = micros();  
 
         if (MASTER == 1) {
             digitalWrite(6, LOW); 
             analogWrite(3, LED_BRIGHTNESS);
-            Serial.println((String)count + "," + time_stamp+ "," + adc+ "," + get_sipm_voltage(adc)+ "," + measurement_deadtime+ "," + temperatureC);
-            myFile.println((String)count + "," + time_stamp+ "," + adc+ "," + get_sipm_voltage(adc)+ "," + measurement_deadtime+ "," + temperatureC);
+            sipm_voltage = get_sipm_voltage(adc);
+            last_sipm_voltage = sipm_voltage;
+            Serial.println((String)count + "," + time_stamp+ "," + adc+ "," + sipm_voltage+ "," + measurement_deadtime+ "," + temperatureC);
+            myFile.println((String)count + "," + time_stamp+ "," + adc+ "," + sipm_voltage+ "," + measurement_deadtime+ "," + temperatureC);
             myFile.flush();
             last_adc_value = adc;
         }
@@ -173,8 +224,10 @@ void transfer_to_SD_and_Pi(){
         if (SLAVE == 1) {
             if (keep_pulse == 1){   
                 analogWrite(3, LED_BRIGHTNESS);
-                Serial.println((String)count + "," + time_stamp+ "," + adc+ "," + get_sipm_voltage(adc)+ "," + measurement_deadtime+ "," + temperatureC);
-                myFile.println((String)count + "," + time_stamp+ "," + adc+ "," + get_sipm_voltage(adc)+ "," + measurement_deadtime+ "," + temperatureC);
+                sipm_voltage = get_sipm_voltage(adc);
+                last_sipm_voltage = sipm_voltage;
+                Serial.println((String)count + "," + time_stamp+ "," + adc+ "," + sipm_voltage+ "," + measurement_deadtime+ "," + temperatureC);
+                myFile.println((String)count + "," + time_stamp+ "," + adc+ "," + sipm_voltage+ "," + measurement_deadtime+ "," + temperatureC);
                 myFile.flush();
                 last_adc_value = adc;
             }
@@ -222,11 +275,102 @@ void loop() {
     }
 }
 
+//OLED screen functions
+
+void timerIsr() 
+{
+    interrupts();
+    interrupt_timer                       = millis();
+    if (waiting_for_interupt == 1){
+        total_deadtime += (millis() - waiting_t1);}
+    waiting_for_interupt = 0;
+    if (OLED == 1){
+        get_time();}
+}
+
+void get_time() 
+{
+    unsigned long int OLED_t1             = micros();
+    float count_average                   = 0;
+    float count_std                       = 0;
+
+    if (count > 0.) {
+        count_average   = count / ((interrupt_timer - start_time - total_deadtime) / 1000.);
+        count_std       = sqrt(count) / ((interrupt_timer - start_time - total_deadtime) / 1000.);}
+    else {
+        count_average   = 0;
+        count_std       = 0;
+    }
+    
+    display.setCursor(0, 0);
+    display.clearDisplay();
+    display.print(F("Total Count: "));
+    display.println(count);
+    display.print(F("Uptime: "));
+
+    int minutes                 = ((interrupt_timer - start_time) / 1000 / 60) % 60;
+    int seconds                 = ((interrupt_timer - start_time) / 1000) % 60;
+    char min_char[4];
+    char sec_char[4];
+    
+    sprintf(min_char, "%02d", minutes);
+    sprintf(sec_char, "%02d", seconds);
+
+    display.println((String) ((interrupt_timer - start_time) / 1000 / 3600) + ":" + min_char + ":" + sec_char);
+
+    if (count == 0) {
+        display.println("Hi, I'm "+(String)detector_name);
+        }
+        //if (MASTER == 1) {display.println(F("::---  MASTER   ---::"));}
+        //if (SLAVE  == 1) {display.println(F("::---   SLAVE   ---::"));}}
+        
+    else{
+        if (last_sipm_voltage > 180){
+            display.print(F("===---- WOW! ----==="));}
+        else{
+                if (MASTER == 1) {display.print(F("M"));}
+                if (SLAVE  == 1) {display.print(F("S"));}
+                for (int i = 1; i <=  (last_sipm_voltage + 10) / 10; i++) {display.print(F("-"));}}
+        display.println(F(""));
+    }
+
+    char tmp_average[4];
+    char tmp_std[4];
+
+    int decimals = 2;
+    if (count_average < 10) {decimals = 3;}
+    
+    dtostrf(count_average, 1, decimals, tmp_average);
+    dtostrf(count_std, 1, decimals, tmp_std);
+    
+    display.print(F("Rate: "));
+    display.print((String)tmp_average);
+    display.print(F("+/-"));
+    display.println((String)tmp_std);
+    display.display();
+    
+    total_deadtime                      += (micros() - OLED_t1 +73)/1000.;
+}
+
+void OpeningScreen(void) 
+{
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(8, 0);
+    display.clearDisplay();
+    display.print(F("Cosmic \n     Watch"));
+    display.display();
+    display.setTextSize(1);
+    display.clearDisplay();
+}
 
 
-// Maintain capability to write to SD card
+
 
 /*
+
+// Maintain capability to read/clear SD card
+
 void setup_files(){   
   for (uint8_t i = 1; i < 201; i++) {
       int hundreds = (i-i/1000*1000)/100;
