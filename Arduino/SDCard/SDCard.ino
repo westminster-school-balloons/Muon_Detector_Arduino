@@ -125,7 +125,7 @@ void loop() {
   myFile.println(F("### Comp_date Comp_time Event Ardn_time[ms] ADC[0-1023] SiPM[mV] Deadtime[ms] Temp[C] Name"));
   myFile.println(F("##########################################################################################"));
   myFile.println("Device ID: " + (String)detector_name);
-   
+  
   write_to_SD();
   }
 }
@@ -141,20 +141,20 @@ void setup_files(){
       if (! SD.exists(filename)) {
           Serial.println("Creating file: " + (String)filename);
           if (SLAVE ==1){
-           digitalWrite(3,HIGH);
-           delay(1000);
-           digitalWrite(3,LOW);
+          digitalWrite(3,HIGH);
+          delay(1000);
+          digitalWrite(3,LOW);
           }
           delay(500);
           myFile = SD.open(filename, FILE_WRITE); 
           break;  
       }
-   }
+  }
 }
 
 void write_to_SD(){ 
   while (1){
-    if (analogRead(A0) > SIGNAL_THRESHOLD){
+    if (analogRead(A0) > SIGNAL_THRESHOLD){     //if pulse detected
       int adc = analogRead(A0);
       
       if (MASTER == 1) {digitalWrite(6, HIGH);
