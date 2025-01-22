@@ -32,7 +32,7 @@ const long double cal[] = {-9.085681659276021e-27, 4.6790804314609205e-23, -1.03
   1.2741066484319192e-16, -9.684460759517656e-14, 4.6937937442284284e-11, -1.4553498837275352e-08,
    2.8216624998078298e-06, -0.000323032620672037, 0.019538631135788468, -0.3774384056850066, 12.324891083404246};
    
-const int cal_max = 1023;
+const int cal_max = 1023; // Using Arduino's 0-1023 ADC reader
 
 //INTERUPT SETUP
 #define TIMER_INTERVAL 1000000          // Every 1,000,000 us the timer will update the OLED readout
@@ -95,6 +95,7 @@ void setup() {
   else {delay(2000);}
   digitalWrite(3,LOW);
   if (MASTER == 1) {digitalWrite(6, LOW);}
+
 
   Serial.println(F("##########################################################################################"));
   Serial.println(F("### CosmicWatch: The Desktop Muon Detector"));
@@ -234,7 +235,8 @@ void get_time()
             if (MASTER == 1) {display.print(F("M"));}
             if (SLAVE  == 1) {display.print(F("S"));}
             for (int i = 1; i <=  (last_sipm_voltage + 10) / 10; i++) {display.print(F("-"));}}
-      display.println(F(""));}
+      display.println(F(""));
+    }
 
   char tmp_average[4];
   char tmp_std[4];

@@ -221,7 +221,8 @@ void transfer_to_SD_and_Pi(){
         int adc = analogRead(A0);
       
         // If Master, send a signal to the Slave
-        if (MASTER == 1) {digitalWrite(6, HIGH);
+        if (MASTER == 1) {
+            digitalWrite(6, HIGH);
             count++;
             keep_pulse = 1;
         }
@@ -436,6 +437,8 @@ void setup() {
         filename[4] = 'S';
         SLAVE = 1;
         MASTER = 0;
+        digitalWrite(3,HIGH);
+        delay(1000);
     }
 
     else{
@@ -492,6 +495,8 @@ void setup() {
 }
 
 void loop() {
-  transfer_to_SD_and_Pi();
+    while(1){
+        transfer_to_SD_and_Pi();
+    }
 }
 
